@@ -9,15 +9,86 @@ import tempfile
 import os
 import shutil
 from dotenv import load_dotenv
+import requests
+from functools import wraps
 
 # Load environment variables
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:4000")
+
 if API_KEY:
     genai.configure(api_key=API_KEY)
 
 app = Flask(__name__)
 CORS(app)
+
+# Auth middleware
+def require_auth(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"error": "Authorization token required"}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Validate token with auth service
+            response = requests.post(
+                f"{AUTH_SERVICE_URL}/validate-token",
+                json={"token": token},
+                headers={"Content-Type": "application/json"},
+                timeout=5
+            )
+            
+            if response.status_code != 200:
+                return jsonify({"error": "Invalid or expired token"}), 401
+            
+            user_data = response.json()
+            request.user = user_data.get('user')
+            
+            return f(*args, **kwargs)
+        except requests.exceptions.RequestException as e:
+            print(f"Auth service error: {str(e)}")
+            return jsonify({"error": "Authentication service unavailable"}), 503
+    
+    return decorated_function
+
+def check_and_decrement_caption_quota(user_id: str, token: str) -> bool:
+    """Check if user has remaining captions and decrement if they do"""
+    try:
+        # Check caption limit
+        check_response = requests.get(
+            f"{AUTH_SERVICE_URL}/caption/check-limit",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=5
+        )
+        
+        if check_response.status_code != 200:
+            return False
+        
+        limit_data = check_response.json()
+        
+        if not limit_data.get('has_remaining', False):
+            return False
+        
+        # Decrement usage
+        decrement_response = requests.post(
+            f"{AUTH_SERVICE_URL}/caption/decrement",
+            json={"user_id": user_id},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            },
+            timeout=5
+        )
+        
+        return decrement_response.status_code == 200
+    except requests.exceptions.RequestException as e:
+        print(f"Error checking/decrementing quota: {str(e)}")
+        return False
 
 # Initialize AI Agent
 agent = Agent(
@@ -29,8 +100,20 @@ agent = Agent(
 model = whisper.load_model("base")
 
 @app.route("/generate-captions", methods=["POST"])
+@require_auth
 def generate_captions():
     try:
+        # Get user info and token from request
+        user = request.user
+        auth_header = request.headers.get('Authorization')
+        token = auth_header.split(' ')[1] if auth_header else None
+        
+        # Check and decrement caption quota
+        if not check_and_decrement_caption_quota(user['id'], token):
+            return jsonify({
+                "error": "Caption generation limit reached. Please upgrade your plan or wait for the next billing period."
+            }), 403
+        
         if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
 

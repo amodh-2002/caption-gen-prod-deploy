@@ -1,0 +1,50 @@
+# Infrastructure .gitignore
+
+# Environment files with secrets
+*.env
+*.env.local
+*.env.*.local
+.env
+
+# Terraform files (if using Terraform later)
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+
+# Kubernetes secrets (never commit secrets!)
+*-secret.yaml
+*-sealed-secret.yaml
+secrets/
+*.key
+*.pem
+*.crt
+
+# Backup files
+*.bak
+*.backup
+*.sql.bak
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Local test files
+test/
+local/
+

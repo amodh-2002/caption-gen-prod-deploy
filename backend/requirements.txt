@@ -6,3 +6,4 @@ google-generativeai
 openai-whisper
 googletrans==4.0.0-rc1
 python-dotenv
+requests==2.31.0

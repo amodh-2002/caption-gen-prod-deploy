@@ -11,18 +11,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { createClient } from "@/utils/supabase/client";
+import { apiClient } from "@/lib/api-client";
 
 interface UserData {
   id: string;
   email: string;
   full_name: string;
-  subscription?: {
-    plan?: {
-      name: string;
-      description: string;
-    };
-  };
+  plan_name?: string;
 }
 
 interface UsageData {
@@ -53,71 +48,48 @@ export default function AccountSettings() {
     },
   });
 
-  const supabase = createClient();
-
   useEffect(() => {
     async function fetchUserData() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        // First, set basic user data
-        setUserData({
-          id: user.id,
-          email: user.email!,
-          full_name: user.user_metadata.full_name || "",
-          subscription: undefined,
-        });
-
-        // Then fetch subscription data
-        const { data: subscriptionData, error: subscriptionError } =
-          await supabase
-            .from("subscriptions")
-            .select(
-              `
-            *,
-            plan:plans(*)
-          `
-            )
-            .eq("user_id", user.id)
-            .single();
-
-        if (!subscriptionError && subscriptionData) {
-          setUserData((prev) => ({
-            ...prev!,
-            subscription: subscriptionData,
-          }));
-
-          // Set usage limits based on plan
-          const isPremium =
-            subscriptionData?.plan?.name.toLowerCase() !== "free";
-
-          // Fetch caption usage
-          const { data: usageData } = await supabase
-            .from("caption_usage")
-            .select("count")
-            .eq("user_id", user.id)
-            .single();
-
-          setUsageData({
-            captions: {
-              used: usageData?.count || 0,
-              limit: isPremium ? 200 : 50,
-              label: "Basic Captions",
-            },
-            premium: {
-              used: 0,
-              limit: isPremium ? 100 : 0,
-              label: "Advanced Captions",
-            },
+      try {
+        // Fetch current user
+        const user = await apiClient.getCurrentUser();
+        
+        if (user) {
+          // Fetch subscription data
+          const subscription = await apiClient.getSubscription();
+          
+          setUserData({
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name,
+            plan_name: subscription?.plan_name,
           });
+
+          // Set usage data based on subscription
+          if (subscription) {
+            const isPremium = subscription.plan_name.toLowerCase() !== "free";
+            
+            setUsageData({
+              captions: {
+                used: subscription.captions_limit - subscription.captions_remaining,
+                limit: subscription.captions_limit,
+                label: "Basic Captions",
+              },
+              premium: {
+                used: 0,
+                limit: isPremium ? 100 : 0,
+                label: "Advanced Captions",
+              },
+            });
+          }
         }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
       }
     }
 
     fetchUserData();
-  }, [supabase]);
+  }, []);
 
   if (!userData) {
     return <div>Loading...</div>;
@@ -223,7 +195,7 @@ export default function AccountSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-4">
-                  {userData.subscription?.plan?.name === "Free" && (
+                  {userData.plan_name === "Free" && (
                     <>
                       <Button className="w-full bg-sky-blue hover:bg-sky-blue/80 text-charcoal">
                         UPGRADE TO PRO

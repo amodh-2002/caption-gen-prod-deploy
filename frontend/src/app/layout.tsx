@@ -1,7 +1,7 @@
-import { createClient } from "@/utils/supabase/server";
 import Navbar from "@/components/navbar";
 import Footer from "../components/footer";
 import { Toaster } from "@/components/ui/toaster";
+import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
 export default async function RootLayout({
@@ -9,8 +9,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   return (
     <html lang="en">

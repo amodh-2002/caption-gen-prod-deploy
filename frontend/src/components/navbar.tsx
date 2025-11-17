@@ -11,44 +11,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { User as SupabaseUser } from "@supabase/supabase-js";
+import { apiClient, User as ApiUser } from "@/lib/api-client";
+import { logout } from "@/app/login/action";
 
 interface NavbarProps {
-  user: SupabaseUser | null;
+  user: ApiUser | null;
 }
 
 export default function Navbar({ user: initialUser }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
-  const [user, setUser] = useState<SupabaseUser | null>(initialUser);
+  const [user, setUser] = useState<ApiUser | null>(initialUser);
 
   useEffect(() => {
     async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+      try {
+        const currentUser = await apiClient.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        setUser(null);
+      }
     }
-    getUser();
-
-    // Set up auth state listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: string, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase.auth]);
+    
+    if (!initialUser) {
+      getUser();
+    }
+  }, [initialUser]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
+    apiClient.logout();
+    await logout();
   };
 
   return (
@@ -96,7 +89,7 @@ export default function Navbar({ user: initialUser }: NavbarProps) {
                     variant="ghost"
                     className="text-white hover:text-sky-blue"
                   >
-                    {user.user_metadata.full_name || user.email}
+                    {user.full_name || user.email}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-white">

@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, Image, Video } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { apiClient } from "@/lib/api-client";
 
 export default function CaptionGeneratorForm() {
   const [isVideo, setIsVideo] = useState(false);
@@ -70,25 +71,17 @@ export default function CaptionGeneratorForm() {
     }
 
     setIsLoading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("fileType", isVideo ? "video" : "image");
-    formData.append("tone", tone);
-    formData.append("length", length);
-    formData.append("hashtagCount", hashtagCount.toString());
 
     try {
-      const response = await fetch("http://localhost:5000/generate-captions", {
-        method: "POST",
-        body: formData,
-      });
+      // Use the API client to generate captions
+      const data = await apiClient.generateCaptions(
+        file,
+        isVideo ? "video" : "image",
+        tone,
+        length,
+        hashtagCount
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate captions");
-      }
-
-      const data = await response.json();
       setCaptions(data.captions);
       toast({
         title: "Success",

@@ -2,59 +2,45 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:4000';
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const fullName = formData.get("name") as string;
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-    options: {
-      data: {
-        full_name: formData.get("name") as string,
-      },
-    },
-  };
+  try {
+    const response = await fetch(`${AUTH_URL}/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password,
+        full_name: fullName,
+      }),
+    });
 
-  const {
-    data: { user },
-    error: signUpError,
-  } = await supabase.auth.signUp(data);
+    if (!response.ok) {
+      const error = await response.json();
+      redirect(
+        "/signup?message=" + encodeURIComponent(error.detail || "Could not create account")
+      );
+    }
 
-  if (signUpError) {
+    const data = await response.json();
+    
+    // Store token in cookie for server-side access
+    // Note: In production, use httpOnly cookies via middleware
+    
+    redirect(
+      "/login?message=" +
+        encodeURIComponent("Account created successfully! Please login.")
+    );
+  } catch (error) {
+    console.error("Signup error:", error);
     redirect(
       "/signup?message=" + encodeURIComponent("Could not create account")
     );
   }
-
-  if (user) {
-    // Get the free plan ID
-    const { data: freePlan } = await supabase
-      .from("plans")
-      .select("id")
-      .eq("name", "Free")
-      .single();
-
-    if (freePlan) {
-      // Create subscription record
-      const { error: subscriptionError } = await supabase
-        .from("subscriptions")
-        .insert({
-          user_id: user.id,
-          plan_id: freePlan.id,
-          status: "active",
-          start_date: new Date().toISOString(),
-        });
-
-      if (subscriptionError) {
-        console.error("Error creating subscription:", subscriptionError);
-      }
-    }
-  }
-
-  redirect(
-    "/login?message=" +
-      encodeURIComponent("Check your email to confirm your account")
-  );
 }
