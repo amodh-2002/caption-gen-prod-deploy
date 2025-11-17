@@ -11,6 +11,11 @@ export async function signup(formData: FormData) {
   const password = formData.get("password") as string;
   const fullName = formData.get("name") as string;
 
+  // Debug logging
+  console.log('AUTH_URL:', AUTH_URL);
+  console.log('AUTH_SERVICE_URL env:', process.env.AUTH_SERVICE_URL);
+  console.log('NEXT_PUBLIC_AUTH_URL env:', process.env.NEXT_PUBLIC_AUTH_URL);
+
   try {
     const response = await fetch(`${AUTH_URL}/signup`, {
       method: 'POST',
