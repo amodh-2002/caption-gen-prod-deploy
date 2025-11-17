@@ -11,11 +11,6 @@ export async function signup(formData: FormData) {
   const password = formData.get("password") as string;
   const fullName = formData.get("name") as string;
 
-  // Debug logging
-  console.log('AUTH_URL:', AUTH_URL);
-  console.log('AUTH_SERVICE_URL env:', process.env.AUTH_SERVICE_URL);
-  console.log('NEXT_PUBLIC_AUTH_URL env:', process.env.NEXT_PUBLIC_AUTH_URL);
-
   try {
     const response = await fetch(`${AUTH_URL}/signup`, {
       method: 'POST',
@@ -39,11 +34,17 @@ export async function signup(formData: FormData) {
     // Store token in cookie for server-side access
     // Note: In production, use httpOnly cookies via middleware
     
+    // Redirect throws a special error that Next.js handles - don't catch it
     redirect(
       "/login?message=" +
         encodeURIComponent("Account created successfully! Please login.")
     );
-  } catch (error) {
+  } catch (error: any) {
+    // Re-throw redirect errors - they're not actual errors
+    if (error?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error;
+    }
+    
     console.error("Signup error:", error);
     const errorMessage = error instanceof Error ? error.message : "Could not create account";
     redirect(

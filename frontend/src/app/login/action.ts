@@ -42,7 +42,12 @@ export async function login(formData: FormData) {
 
     revalidatePath("/", "page");
     redirect("/");
-  } catch (error) {
+  } catch (error: any) {
+    // Re-throw redirect errors - they're not actual errors
+    if (error?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error;
+    }
+    
     console.error("Login error:", error);
     redirect(
       "/login?message=" +
