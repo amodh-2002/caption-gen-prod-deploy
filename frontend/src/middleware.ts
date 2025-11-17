@@ -4,15 +4,28 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   // Trust proxy headers for GitHub Codespaces
   // This allows Server Actions to work behind the Codespaces proxy
-  const response = NextResponse.next();
   
-  // If we're behind a proxy (Codespaces), trust the forwarded headers
-  if (request.headers.get('x-forwarded-host')) {
-    // Allow the request to proceed
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const origin = request.headers.get('origin');
+  
+  // Check if this is a Server Actions request (POST with Next-Action header)
+  const isServerAction = request.method === 'POST' && 
+    (request.headers.get('content-type')?.includes('text/plain') || 
+     request.nextUrl.searchParams.has('_rsc'));
+  
+  // If behind Codespaces proxy and it's a Server Action, rewrite headers
+  if (isServerAction && forwardedHost && origin) {
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const newOrigin = `${protocol}://${forwardedHost}`;
+    
+    // Create response with modified headers
+    const response = NextResponse.next();
+    response.headers.set('x-middleware-rewrite-origin', newOrigin);
+    
     return response;
   }
   
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

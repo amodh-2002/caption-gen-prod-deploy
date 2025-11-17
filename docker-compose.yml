@@ -83,6 +83,8 @@ services:
       NEXT_PUBLIC_AUTH_URL: http://localhost:4000
       AUTH_SERVICE_URL: http://auth:4000
       BACKEND_SERVICE_URL: http://backend:5000
+      # Disable strict Server Actions origin validation in dev (for Codespaces proxy)
+      NEXT_PUBLIC_SERVER_ACTIONS_ALLOWED_ORIGINS: "*"
     ports:
       - "3000:3000"
     depends_on:
