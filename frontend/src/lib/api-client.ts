@@ -3,8 +3,52 @@
  * Handles authentication and backend service communication
  */
 
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:4000';
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// Smart URL detection for different environments
+const getServiceUrl = (port: number, envVar?: string, serviceName?: string) => {
+  // 1. Use environment variable if explicitly set
+  if (envVar) return envVar;
+  
+  // 2. Client-side: detect environment
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    
+    // Codespaces: each port has its own forwarded URL
+    // e.g., https://xxxx-3000.app.github.dev -> https://xxxx-4000.app.github.dev
+    if (origin.includes('.app.github.dev') || origin.includes('.github.dev') || origin.includes('preview.app.github.dev')) {
+      // Extract the base pattern and replace port number
+      // Handles: xxxx-3000.app.github.dev, xxxx-3000.preview.app.github.dev
+      const match = origin.match(/^https?:\/\/([^-]+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
+      if (match) {
+        const base = match[1];
+        const domain = match[3];
+        return `https://${base}-${port}${domain}`;
+      }
+    }
+    
+    // Production/EKS: use same origin with API path (configured via Ingress)
+    // This will be set via environment variables in EKS
+    if (origin.includes('http://') || origin.includes('https://')) {
+      // In production, APIs are typically routed through the same domain
+      // e.g., /api/auth, /api/backend
+      return origin; // Will use relative paths or env vars in production
+    }
+    
+    // Local development fallback
+    return `http://localhost:${port}`;
+  }
+  
+  // 3. Server-side: use Docker service names (for EKS/internal)
+  // This is handled in server actions separately
+  return `http://localhost:${port}`;
+};
+
+const AUTH_URL = getServiceUrl(4000, process.env.NEXT_PUBLIC_AUTH_URL, 'auth');
+const BACKEND_URL = getServiceUrl(5000, process.env.NEXT_PUBLIC_API_URL, 'backend');
+
+// Debug logging (remove in production)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('API Client URLs:', { AUTH_URL, BACKEND_URL, origin: window.location.origin });
+}
 
 export interface ApiError {
   message: string;
