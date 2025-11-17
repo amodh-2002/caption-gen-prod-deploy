@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:4000';
+// Server-side: use Docker service name, client-side: use localhost
+const AUTH_URL = process.env.AUTH_SERVICE_URL || process.env.NEXT_PUBLIC_AUTH_URL || 'http://auth:4000';
 
 export async function login(formData: FormData) {
   const email = formData.get("email") as string;

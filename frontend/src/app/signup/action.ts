@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:4000';
+// Server-side: use Docker service name, client-side: use localhost
+const AUTH_URL = process.env.AUTH_SERVICE_URL || process.env.NEXT_PUBLIC_AUTH_URL || 'http://auth:4000';
 
 export async function signup(formData: FormData) {
   const email = formData.get("email") as string;
@@ -39,8 +40,9 @@ export async function signup(formData: FormData) {
     );
   } catch (error) {
     console.error("Signup error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Could not create account";
     redirect(
-      "/signup?message=" + encodeURIComponent("Could not create account")
+      "/signup?message=" + encodeURIComponent(errorMessage)
     );
   }
 }
