@@ -134,7 +134,7 @@ export default function AccountSettings() {
                     Current Plan
                   </label>
                   <p className="text-charcoal">
-                    {userData.subscription?.plan?.name || "Free"}
+                    {userData.plan_name || "Free"}
                   </p>
                 </div>
               </CardContent>
