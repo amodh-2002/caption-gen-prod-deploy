@@ -1,0 +1,8 @@
+flask==2.0.1
+flask-cors==3.0.10
+werkzeug==2.0.3
+phidata
+google-generativeai
+openai-whisper
+googletrans==4.0.0-rc1
+python-dotenv
