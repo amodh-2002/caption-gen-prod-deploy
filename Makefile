@@ -38,6 +38,12 @@ restart: down up ## Restart all services
 clean: ## Remove all containers, volumes, and images
 	docker-compose down -v --rmi all
 
+clean-network: ## Clean up orphaned Docker networks
+	docker-compose down --remove-orphans
+	docker network prune -f
+
+clean-all: clean clean-network ## Complete cleanup including networks
+
 db-shell: ## Open PostgreSQL shell
 	docker-compose exec postgres psql -U postgres -d caption_gen
 
