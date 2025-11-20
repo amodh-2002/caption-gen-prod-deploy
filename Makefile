@@ -13,10 +13,12 @@ up: ## Start all services
 	docker-compose up -d
 
 dev: ## Start all services in development mode with hot reload
+	@echo "Cleaning up any orphaned networks..."
+	@docker network prune -f > /dev/null 2>&1 || true
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 down: ## Stop all services
-	docker-compose down
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down --remove-orphans || docker-compose down --remove-orphans
 
 logs: ## Show logs from all services
 	docker-compose logs -f
