@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: caption-gen
+  labels:
+    app: auth-service
+spec:
+  type: ClusterIP  # Internal service only
+  ports:
+  - port: 4000
+    targetPort: 4000
+    protocol: TCP
+    name: http
+  selector:
+    app: auth-service
+

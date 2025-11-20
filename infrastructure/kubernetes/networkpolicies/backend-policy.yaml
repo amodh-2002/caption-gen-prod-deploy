@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-service-network-policy
+  namespace: caption-gen
+spec:
+  podSelector:
+    matchLabels:
+      app: backend-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from frontend service
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend-service
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow from Ingress (ALB)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 5000
+  egress:
+  # Allow to auth service
+  - to:
+    - podSelector:
+        matchLabels:
+          app: auth-service
+    ports:
+    - protocol: TCP
+      port: 4000
+  # Allow external API calls (for Google API)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+

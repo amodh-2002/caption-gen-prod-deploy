@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: caption-gen
+data:
+  NODE_ENV: "production"
+  # These will be set based on your Ingress domain
+  # Update after Ingress is created
+  NEXT_PUBLIC_API_URL: "https://yourdomain.com/api/backend"
+  NEXT_PUBLIC_AUTH_URL: "https://yourdomain.com/api/auth"
+  # Server-side URLs (for Server Actions)
+  AUTH_SERVICE_URL: "http://auth-service:4000"
+  BACKEND_SERVICE_URL: "http://backend-service:5000"
+

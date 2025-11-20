@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: caption-gen
+data:
+  DB_PORT: "5432"
+  DB_NAME: "caption_gen"
+  DB_HOST: "postgres-headless"
+  JWT_EXPIRATION_HOURS: "24"
+  PORT: "4000"
+  HOST: "0.0.0.0"
+  # CORS origins - update with your actual domain
+  CORS_ORIGINS: "https://yourdomain.com,https://www.yourdomain.com"
+

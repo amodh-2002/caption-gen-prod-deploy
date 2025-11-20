@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-config
+  namespace: caption-gen
+data:
+  POSTGRES_DB: "caption_gen"
+  POSTGRES_USER: "postgres"
+  DB_NAME: "caption_gen"
+  DB_PORT: "5432"
+  DB_HOST: "postgres-headless"  # Headless service name
+

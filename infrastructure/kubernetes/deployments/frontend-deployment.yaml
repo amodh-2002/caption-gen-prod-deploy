@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-service
+  namespace: caption-gen
+  labels:
+    app: frontend-service
+spec:
+  replicas: 2  # Run 2 replicas for high availability
+  selector:
+    matchLabels:
+      app: frontend-service
+  template:
+    metadata:
+      labels:
+        app: frontend-service
+    spec:
+      containers:
+      - name: frontend
+        image: your-ecr-repo/frontend-service:latest  # Update with your ECR image
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: frontend-config
+              key: NODE_ENV
+        - name: NEXT_PUBLIC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: frontend-config
+              key: NEXT_PUBLIC_API_URL
+        - name: NEXT_PUBLIC_AUTH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: frontend-config
+              key: NEXT_PUBLIC_AUTH_URL
+        - name: AUTH_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: frontend-config
+              key: AUTH_SERVICE_URL
+        - name: BACKEND_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: frontend-config
+              key: BACKEND_SERVICE_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+

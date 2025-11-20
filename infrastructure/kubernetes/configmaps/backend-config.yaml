@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: caption-gen
+data:
+  AUTH_SERVICE_URL: "http://auth-service:4000"  # ClusterIP service name
+  FLASK_ENV: "production"
+  PYTHONUNBUFFERED: "1"
+

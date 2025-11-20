@@ -1,0 +1,46 @@
+# Kustomization file for easier deployment
+# Usage: kubectl apply -k infrastructure/kubernetes/
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: caption-gen
+
+resources:
+  # Namespace
+  - namespaces/caption-gen.yaml
+  
+  # ConfigMaps
+  - configmaps/database-config.yaml
+  - configmaps/database-init-sql.yaml
+  - configmaps/auth-service-config.yaml
+  - configmaps/backend-config.yaml
+  - configmaps/frontend-config.yaml
+  
+  # StatefulSet and Service for Database
+  - statefulsets/postgres-statefulset.yaml
+  - services/postgres-headless-service.yaml
+  
+  # Deployments and Services
+  - deployments/auth-deployment.yaml
+  - services/auth-service.yaml
+  - deployments/backend-deployment.yaml
+  - services/backend-service.yaml
+  - deployments/frontend-deployment.yaml
+  - services/frontend-service.yaml
+  
+  # Ingress
+  - ingress/alb-ingress.yaml
+  
+  # Network Policies (optional - comment out if not using)
+  # - networkpolicies/default-deny.yaml
+  # - networkpolicies/database-policy.yaml
+  # - networkpolicies/auth-policy.yaml
+  # - networkpolicies/backend-policy.yaml
+  # - networkpolicies/frontend-policy.yaml
+
+# Common labels
+commonLabels:
+  app: caption-gen
+  managed-by: kustomize
+
