@@ -3,6 +3,7 @@
 
 echo "Clearing Next.js cache and restarting frontend..."
 
+
 # Stop frontend
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml stop frontend
 
