@@ -55,25 +55,51 @@ const getAuthUrl = (): string => {
     return process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:4000';
   }
   
-  const envUrl = process.env.NEXT_PUBLIC_AUTH_URL;
   const origin = window.location.origin;
   
-  // Always prioritize Codespaces detection if we're in Codespaces
+  // ALWAYS prioritize Codespaces detection if we're in Codespaces
+  // This check happens FIRST, before checking env vars
+  // Handles all Codespaces URL patterns:
+  // - https://xxxx-3000.app.github.dev
+  // - https://xxxx-3000.preview.app.github.dev
+  // - https://xxxx-3000.github.dev
+  // - https://reimagined-enigma-qgq659w9q44h45x4-3000.app.github.dev (with hyphens in name)
   if (origin.includes('.app.github.dev') || origin.includes('.github.dev') || origin.includes('preview.app.github.dev')) {
-    const match = origin.match(/^https?:\/\/([^-]+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
+    // Improved regex to handle Codespaces URLs, including names with hyphens
+    // Pattern: https://[codespace-name]-[port].[domain]
+    // The codespace name can contain hyphens, so we match everything up to the last "-" followed by digits
+    const match = origin.match(/^https?:\/\/(.+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
     if (match) {
-      const base = match[1];
-      const domain = match[3];
-      return `https://${base}-4000${domain}`;
+      const base = match[1]; // Codespace name (can contain hyphens, e.g., "reimagined-enigma-qgq659w9q44h45x4")
+      const port = match[2]; // Original port (e.g., "3000")
+      const domain = match[3]; // Domain suffix (e.g., ".app.github.dev" or ".preview.app.github.dev" or ".github.dev")
+      const codespacesUrl = `https://${base}-4000${domain}`;
+      // Debug log
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[getAuthUrl] Codespaces detected:', { 
+          origin, 
+          codespaceName: base,
+          originalPort: port,
+          domain: domain,
+          codespacesUrl 
+        });
+      }
+      return codespacesUrl;
+    } else {
+      // Fallback: if we're in Codespaces but regex didn't match, log warning
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[getAuthUrl] Codespaces detected but regex failed. Origin:', origin);
+      }
     }
   }
   
-  // Use env var if it's set and not localhost (for production)
+  // Check env var only if NOT in Codespaces
+  const envUrl = process.env.NEXT_PUBLIC_AUTH_URL;
   if (envUrl && !envUrl.includes('localhost')) {
     return envUrl;
   }
   
-  // Fallback to localhost
+  // Fallback to localhost (only for true local development)
   return envUrl || 'http://localhost:4000';
 };
 
@@ -83,25 +109,51 @@ const getBackendUrl = (): string => {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   }
   
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
   const origin = window.location.origin;
   
-  // Always prioritize Codespaces detection if we're in Codespaces
+  // ALWAYS prioritize Codespaces detection if we're in Codespaces
+  // This check happens FIRST, before checking env vars
+  // Handles all Codespaces URL patterns:
+  // - https://xxxx-3000.app.github.dev
+  // - https://xxxx-3000.preview.app.github.dev
+  // - https://xxxx-3000.github.dev
+  // - https://reimagined-enigma-qgq659w9q44h45x4-3000.app.github.dev (with hyphens in name)
   if (origin.includes('.app.github.dev') || origin.includes('.github.dev') || origin.includes('preview.app.github.dev')) {
-    const match = origin.match(/^https?:\/\/([^-]+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
+    // Improved regex to handle Codespaces URLs, including names with hyphens
+    // Pattern: https://[codespace-name]-[port].[domain]
+    // The codespace name can contain hyphens, so we match everything up to the last "-" followed by digits
+    const match = origin.match(/^https?:\/\/(.+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
     if (match) {
-      const base = match[1];
-      const domain = match[3];
-      return `https://${base}-5000${domain}`;
+      const base = match[1]; // Codespace name (can contain hyphens, e.g., "reimagined-enigma-qgq659w9q44h45x4")
+      const port = match[2]; // Original port (e.g., "3000")
+      const domain = match[3]; // Domain suffix (e.g., ".app.github.dev" or ".preview.app.github.dev" or ".github.dev")
+      const codespacesUrl = `https://${base}-5000${domain}`;
+      // Debug log
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[getBackendUrl] Codespaces detected:', { 
+          origin, 
+          codespaceName: base,
+          originalPort: port,
+          domain: domain,
+          codespacesUrl 
+        });
+      }
+      return codespacesUrl;
+    } else {
+      // Fallback: if we're in Codespaces but regex didn't match, log warning
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[getBackendUrl] Codespaces detected but regex failed. Origin:', origin);
+      }
     }
   }
   
-  // Use env var if it's set and not localhost (for production)
+  // Check env var only if NOT in Codespaces
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl && !envUrl.includes('localhost')) {
     return envUrl;
   }
   
-  // Fallback to localhost
+  // Fallback to localhost (only for true local development)
   return envUrl || 'http://localhost:5000';
 };
 
@@ -259,7 +311,12 @@ class ApiClient {
   }
 
   async checkCaptionLimit(): Promise<CaptionLimitCheck> {
-    const response = await fetch(`${getAuthUrl()}/caption/check-limit`, {
+    const authUrl = getAuthUrl();
+    // Debug log for troubleshooting
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[checkCaptionLimit] Using auth URL:', authUrl);
+    }
+    const response = await fetch(`${authUrl}/caption/check-limit`, {
       headers: this.getAuthHeaders(),
     });
 
