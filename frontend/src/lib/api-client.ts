@@ -5,10 +5,7 @@
 
 // Smart URL detection for different environments
 const getServiceUrl = (port: number, envVar?: string, serviceName?: string) => {
-  // 1. Use environment variable if explicitly set
-  if (envVar) return envVar;
-  
-  // 2. Client-side: detect environment
+  // Client-side: detect environment first (even if envVar is set)
   if (typeof window !== 'undefined') {
     const origin = window.location.origin;
     
@@ -25,21 +22,29 @@ const getServiceUrl = (port: number, envVar?: string, serviceName?: string) => {
       }
     }
     
+    // If envVar is set and not localhost, use it (for production)
+    if (envVar && !envVar.includes('localhost')) {
+      return envVar;
+    }
+    
     // Production/EKS: use same origin with API path (configured via Ingress)
     // This will be set via environment variables in EKS
     if (origin.includes('http://') || origin.includes('https://')) {
       // In production, APIs are typically routed through the same domain
       // e.g., /api/auth, /api/backend
-      return origin; // Will use relative paths or env vars in production
+      // But only if not Codespaces (already handled above)
+      if (!origin.includes('.app.github.dev') && !origin.includes('.github.dev')) {
+        return origin; // Will use relative paths or env vars in production
+      }
     }
     
-    // Local development fallback
-    return `http://localhost:${port}`;
+    // Local development fallback (or if envVar is localhost)
+    return envVar || `http://localhost:${port}`;
   }
   
-  // 3. Server-side: use Docker service names (for EKS/internal)
+  // Server-side: use Docker service names (for EKS/internal)
   // This is handled in server actions separately
-  return `http://localhost:${port}`;
+  return envVar || `http://localhost:${port}`;
 };
 
 const AUTH_URL = getServiceUrl(4000, process.env.NEXT_PUBLIC_AUTH_URL, 'auth');

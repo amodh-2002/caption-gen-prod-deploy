@@ -34,7 +34,9 @@ services:
       DB_PASSWORD: postgres
       JWT_SECRET: dev-secret-key-change-in-production-abc123xyz
       JWT_EXPIRATION_HOURS: 24
-      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      # Use wildcard to allow all origins in development (includes Codespaces)
+      # In production, set specific origins via CORS_ORIGINS
+      CORS_ORIGINS: "*"
       PORT: 4000
       HOST: 0.0.0.0
     ports:
