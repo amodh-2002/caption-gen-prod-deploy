@@ -1,4 +1,4 @@
-gi#!/bin/bash
+#!/bin/bash
 # Cleanup script for Docker networking issues in Codespaces
 
 echo "Cleaning up Docker networks and containers..."

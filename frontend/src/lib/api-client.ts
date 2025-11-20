@@ -47,12 +47,71 @@ const getServiceUrl = (port: number, envVar?: string, serviceName?: string) => {
   return envVar || `http://localhost:${port}`;
 };
 
-const AUTH_URL = getServiceUrl(4000, process.env.NEXT_PUBLIC_AUTH_URL, 'auth');
-const BACKEND_URL = getServiceUrl(5000, process.env.NEXT_PUBLIC_API_URL, 'backend');
+// Get URLs dynamically at runtime - prioritize Codespaces detection
+// This ensures we detect Codespaces URLs even when env vars are set to localhost
+const getAuthUrl = (): string => {
+  if (typeof window === 'undefined') {
+    // Server-side: use env var or Docker service name
+    return process.env.NEXT_PUBLIC_AUTH_URL || 'http://localhost:4000';
+  }
+  
+  const envUrl = process.env.NEXT_PUBLIC_AUTH_URL;
+  const origin = window.location.origin;
+  
+  // Always prioritize Codespaces detection if we're in Codespaces
+  if (origin.includes('.app.github.dev') || origin.includes('.github.dev') || origin.includes('preview.app.github.dev')) {
+    const match = origin.match(/^https?:\/\/([^-]+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
+    if (match) {
+      const base = match[1];
+      const domain = match[3];
+      return `https://${base}-4000${domain}`;
+    }
+  }
+  
+  // Use env var if it's set and not localhost (for production)
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+  
+  // Fallback to localhost
+  return envUrl || 'http://localhost:4000';
+};
+
+const getBackendUrl = (): string => {
+  if (typeof window === 'undefined') {
+    // Server-side: use env var or Docker service name
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  }
+  
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  const origin = window.location.origin;
+  
+  // Always prioritize Codespaces detection if we're in Codespaces
+  if (origin.includes('.app.github.dev') || origin.includes('.github.dev') || origin.includes('preview.app.github.dev')) {
+    const match = origin.match(/^https?:\/\/([^-]+)-(\d+)(\.(preview\.)?app\.github\.dev|\.github\.dev)/);
+    if (match) {
+      const base = match[1];
+      const domain = match[3];
+      return `https://${base}-5000${domain}`;
+    }
+  }
+  
+  // Use env var if it's set and not localhost (for production)
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+  
+  // Fallback to localhost
+  return envUrl || 'http://localhost:5000';
+};
 
 // Debug logging (remove in production)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('API Client URLs:', { AUTH_URL, BACKEND_URL, origin: window.location.origin });
+  console.log('API Client URLs:', { 
+    AUTH_URL: getAuthUrl(), 
+    BACKEND_URL: getBackendUrl(), 
+    origin: window.location.origin 
+  });
 }
 
 export interface ApiError {
@@ -130,7 +189,7 @@ class ApiClient {
   // Auth Service Endpoints
 
   async signup(email: string, password: string, fullName: string): Promise<LoginResponse> {
-    const response = await fetch(`${AUTH_URL}/signup`, {
+    const response = await fetch(`${getAuthUrl()}/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -151,7 +210,7 @@ class ApiClient {
   }
 
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await fetch(`${AUTH_URL}/login`, {
+    const response = await fetch(`${getAuthUrl()}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -168,7 +227,7 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<User> {
-    const response = await fetch(`${AUTH_URL}/me`, {
+    const response = await fetch(`${getAuthUrl()}/me`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -184,7 +243,7 @@ class ApiClient {
   }
 
   async getSubscription(): Promise<Subscription> {
-    const response = await fetch(`${AUTH_URL}/subscription`, {
+    const response = await fetch(`${getAuthUrl()}/subscription`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -200,7 +259,7 @@ class ApiClient {
   }
 
   async checkCaptionLimit(): Promise<CaptionLimitCheck> {
-    const response = await fetch(`${AUTH_URL}/caption/check-limit`, {
+    const response = await fetch(`${getAuthUrl()}/caption/check-limit`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -221,7 +280,7 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(`${AUTH_URL}/validate-token`, {
+      const response = await fetch(`${getAuthUrl()}/validate-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: this.authToken }),
@@ -270,7 +329,7 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.authToken}`;
     }
 
-    const response = await fetch(`${BACKEND_URL}/generate-captions`, {
+    const response = await fetch(`${getBackendUrl()}/generate-captions`, {
       method: 'POST',
       headers,
       body: formData,
@@ -289,12 +348,12 @@ class ApiClient {
   }
 
   async healthCheck(): Promise<{ status: string }> {
-    const response = await fetch(`${BACKEND_URL}/health`);
+    const response = await fetch(`${getBackendUrl()}/health`);
     return response.json();
   }
 
   async authHealthCheck(): Promise<{ status: string; service: string }> {
-    const response = await fetch(`${AUTH_URL}/health`);
+    const response = await fetch(`${getAuthUrl()}/health`);
     return response.json();
   }
 }
