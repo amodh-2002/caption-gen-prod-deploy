@@ -1,0 +1,50 @@
+{
+  "name": "Caption Generator",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "frontend",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  
+  // Forward ports automatically in Codespaces
+  "forwardPorts": [3000, 4000, 5000, 5432],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend",
+      "onAutoForward": "notify"
+    },
+    "4000": {
+      "label": "Auth Service",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "Backend Service",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+  
+  // Use docker-compose for the full stack
+  "runServices": ["postgres", "auth", "backend", "frontend"],
+  
+  // Customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  
+  // Post-create command to ensure services are running
+  "postCreateCommand": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
+  
+  // Features
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }
+}
+
